@@ -157,7 +157,16 @@ async function report(i: ChatInputCommandInteraction) {
     return;
   }
 
-  const out = await syncSubtitle(res, reason, who);
+  let lastEdit = 0;
+  let syncing = true;
+  const out = await syncSubtitle(res, reason, who, (p) => {
+    if (!syncing || Date.now() - lastEdit < 2500) return;
+    lastEdit = Date.now();
+    const status = p.percent === null
+      ? `⏳ Bazarr is syncing… (${Math.floor(p.elapsedSec / 60)}m ${p.elapsedSec % 60}s elapsed; Bazarr isn't reporting a percentage)`
+      : `Syncing **${res.title}**\n${bar(p.percent)} ${p.percent}%${p.message ? `\n${p.message}` : ''}`;
+    void i.editReply({ content: status, components: [] }).catch(() => undefined);
+  }).finally(() => { syncing = false; });
   const next = await ask(i,
     `✅ Bazarr ${out.summary} for **${res.title}** and Jellyfin was asked to rescan. Reload the video and check it.\nStill wrong? I can delete these subtitles and download another.`,
     [btn('replace', 'Still wrong: delete & download another', ButtonStyle.Danger), btn('ok', 'It\'s fixed', ButtonStyle.Success)], 5 * 60_000);

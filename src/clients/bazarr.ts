@@ -26,7 +26,25 @@ const history = async (path: string, query: Record<string, number>) => {
   return r.data ?? [];
 };
 
+export interface BazarrJob {
+  job_name?: string;
+  status?: string;
+  progress_value?: number;
+  progress_max?: number;
+  progress_message?: string;
+  [k: string]: unknown;
+}
+
 export const bazarr = {
+  /** Bazarr's background-job list (newer versions). Returns [] if unsupported. */
+  async jobs(): Promise<BazarrJob[]> {
+    try {
+      const r = await http.request<{ data?: BazarrJob[] } | BazarrJob[]>('/api/system/jobs', { timeoutMs: 5000 });
+      return Array.isArray(r) ? r : r?.data ?? [];
+    } catch {
+      return [];
+    }
+  },
   configured: () => http.configured,
   ping: () => http.request<{ data?: { bazarr_version?: string } }>('/api/system/status'),
   movieHistory: (radarrId: number) => history('/api/movies/history', { radarrid: radarrId }),

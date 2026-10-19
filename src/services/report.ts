@@ -1,7 +1,7 @@
 import { db } from '../db.js';
 import { getBool, getNum } from '../settings.js';
 import { radarr, sonarr, HistoryRecord } from '../clients/arr.js';
-import { bazarr, latestSubtitle, BazarrLang } from '../clients/bazarr.js';
+import { bazarr, latestSubtitle, BazarrLang, BazarrJob } from '../clients/bazarr.js';
 import { Resolved, UserFacingError } from './resolve.js';
 import { refreshJellyfin } from './notify.js';
 
@@ -123,10 +123,33 @@ export async function reportSubtitle(res: Resolved, reason: string | undefined, 
 }
 
 /** Re-time the current subtitle with Bazarr instead of replacing it. Blocks until Bazarr finishes. */
-export async function syncSubtitle(res: Resolved, reason: string | undefined, who: Reporter): Promise<ReportResult> {
+export interface SyncProgress {
+  percent: number | null; // null when Bazarr does not report progress
+  message?: string;
+  elapsedSec: number;
+}
+
+export async function syncSubtitle(
+  res: Resolved, reason: string | undefined, who: Reporter, onProgress?: (p: SyncProgress) => void,
+): Promise<ReportResult> {
   const { isMovie, mediaId, target } = await findSubtitle(res);
   if (!target.subtitles_path) throw new UserFacingError('Bazarr has no file path for that subtitle, so it cannot be synced.');
   const lang = target.language?.name ?? 'subtitle';
+  const started = Date.now();
+  const fileKey = (target.subtitles_path ?? '').split(/[\\/]/).pop()?.replace(/\.[^.]+$/, '').toLowerCase() ?? '';
+  let timer: NodeJS.Timeout | undefined;
+  if (onProgress) {
+    const poll = async () => {
+      const jobs = (await bazarr.jobs()).filter((j) => j.status && !['completed', 'failed', 'pending'].includes(String(j.status).toLowerCase()) && (j.progress_max ?? 0) > 0);
+      // prefer the job that mentions our subtitle file, else any running sync job
+      const text = (j: BazarrJob) => JSON.stringify(j).toLowerCase();
+      const job = jobs.find((j) => fileKey && text(j).includes(fileKey)) ?? jobs.find((j) => text(j).includes('sync'));
+      const pct = job ? Math.min(100, Math.round(((job.progress_value ?? 0) / (job.progress_max ?? 1)) * 100)) : null;
+      onProgress({ percent: pct, message: job?.progress_message, elapsedSec: Math.round((Date.now() - started) / 1000) });
+    };
+    void poll();
+    timer = setInterval(() => void poll(), 3000);
+  }
   try {
     await bazarr.syncSubtitle(isMovie ? 'movie' : 'episode', mediaId, target);
   } catch (e) {
@@ -135,6 +158,8 @@ export async function syncSubtitle(res: Resolved, reason: string | undefined, wh
       note: `sync failed: ${(e as Error).message}`.slice(0, 300), status: 'error',
     });
     throw e;
+  } finally {
+    if (timer) clearInterval(timer);
   }
   const reportId = insertReport({
     kind: 'sync', app: 'bazarr', media_type: res.kind, media_id: mediaId, title: res.title, reason, who,
