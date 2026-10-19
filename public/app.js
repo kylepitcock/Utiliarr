@@ -66,17 +66,22 @@ const load = {
   },
 };
 
-$('#settingsForm').onsubmit = async (e) => {
-  e.preventDefault();
+async function saveSettings() {
   const body = {};
   for (const f of JSON.parse($('#settingsForm').dataset.fields)) { const el = document.getElementById('f-' + f.key); body[f.key] = f.type === 'bool' ? String(el.checked) : el.value; }
-  try { await api('/settings', 'PUT', body); $('#saveMsg').innerHTML = '<span class="ok">Saved</span>'; load.settings(); } catch (er) { $('#saveMsg').innerHTML = `<span class="err">${esc(er.message)}</span>`; }
+  await api('/settings', 'PUT', body);
+}
+$('#settingsForm').onsubmit = async (e) => {
+  e.preventDefault();
+  try { await saveSettings(); $('#saveMsg').innerHTML = '<span class="ok">Saved</span>'; load.settings(); } catch (er) { $('#saveMsg').innerHTML = `<span class="err">${esc(er.message)}</span>`; }
 };
 $('#settingsForm').onclick = async (e) => {
   const svc = e.target.dataset?.test; if (!svc) return;
-  const out = document.getElementById('t-' + svc); out.textContent = 'testing…';
-  const r = await api('/test/' + svc, 'POST').catch((er) => ({ ok: false, info: er.message }));
+  const out = document.getElementById('t-' + svc); out.textContent = 'saving & testing…';
+  // Test uses the saved settings, so save what is currently typed in first.
+  const r = await saveSettings().then(() => api('/test/' + svc, 'POST')).catch((er) => ({ ok: false, info: er.message }));
   out.innerHTML = `<span class="${r.ok ? 'ok' : 'err'}">${r.ok ? '✓' : '✗'} ${esc(r.info)}</span>`;
+  if (r.ok) { document.querySelectorAll('#settingsForm input[type=password]').forEach((i) => { i.value = ''; }); }
 };
 document.body.addEventListener('click', async (e) => {
   const { act, id } = e.target.dataset || {}; if (!act) return;
