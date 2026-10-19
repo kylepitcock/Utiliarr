@@ -179,12 +179,3 @@ export async function searchSubtitle(reportId: number) {
     db.prepare('UPDATE reports SET last_search_at=?, updated_at=? WHERE id=?').run(now(), now(), reportId);
   }
 }
-
-export const cooldowns = new Map<string, number>();
-export function checkCooldown(discordId: string) {
-  const secs = getNum('bot.cooldownSeconds');
-  const last = cooldowns.get(discordId) ?? 0;
-  const wait = Math.ceil((last + secs * 1000 - now()) / 1000);
-  if (wait > 0) throw new UserFacingError(`Please wait ${wait}s before reporting again.`);
-}
-export const touchCooldown = (discordId: string) => cooldowns.set(discordId, now());

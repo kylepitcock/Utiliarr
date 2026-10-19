@@ -74,7 +74,7 @@ All optional; the admin password and everything else is set in the dashboard.
 | `COOKIE_SECURE` | `true` when served over HTTPS. |
 | `PORT`, `DATA_DIR` | Defaults `5757`, `./data` (`/data` in Docker). |
 
-Behaviour toggles (Settings tab): delete-file-on-report, report cooldown, retry interval and max attempts.
+Behaviour toggles (Settings tab): delete-file-on-report, Jellyfin rescan, retry interval and max attempts.
 
 ## Notes & caveats
 

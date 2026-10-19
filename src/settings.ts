@@ -24,7 +24,6 @@ export const FIELDS: FieldDef[] = [
   { key: 'discord.guildId', label: 'Guild (server) ID', group: 'Discord', help: 'Optional. Set for instant slash-command registration in one server.' },
   { key: 'jellyfin.refreshOnChange', label: 'Ask Jellyfin to rescan its library after a video/subtitle is replaced or synced', group: 'Behaviour', type: 'bool', default: 'true', help: 'Requires the Jellyfin URL and API key above.' },
   { key: 'bot.deleteFileOnFail', label: 'Delete the bad file when a video is reported', group: 'Behaviour', type: 'bool', default: 'true', help: 'Needed so Radarr/Sonarr will accept a replacement even if the quality cutoff is already met.' },
-  { key: 'bot.cooldownSeconds', label: 'Per-user report cooldown (seconds)', group: 'Behaviour', type: 'number', default: '60' },
   { key: 'watcher.maxAttempts', label: 'Max automatic re-searches per report', group: 'Behaviour', type: 'number', default: '24' },
   { key: 'watcher.retryMinutes', label: 'Minutes between automatic re-searches', group: 'Behaviour', type: 'number', default: '15' },
 ];

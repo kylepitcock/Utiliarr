@@ -4,7 +4,7 @@ import {
 } from 'discord.js';
 import { getBool, getSetting } from '../settings.js';
 import { resolveTitle, searchTitles, UserFacingError } from '../services/resolve.js';
-import { checkCooldown, reportSubtitle, reportVideo, syncSubtitle, touchCooldown } from '../services/report.js';
+import { reportSubtitle, reportVideo, syncSubtitle } from '../services/report.js';
 import { formatBytes, formatDuration, getQueue } from '../services/queue.js';
 
 const commands = [
@@ -115,7 +115,6 @@ async function report(i: ChatInputCommandInteraction) {
   const issue = i.options.getString('issue', true) as 'video' | 'subtitle' | 'sync';
   const reason = i.options.getString('reason') ?? undefined;
   await i.deferReply({ flags: MessageFlags.Ephemeral });
-  checkCooldown(i.user.id);
   const res = await resolveTitle(
     i.options.getString('title', true), i.options.getInteger('season'), i.options.getInteger('episode'),
     issue === 'video' ? undefined : i.options.getString('language') ?? undefined,
@@ -147,7 +146,6 @@ async function report(i: ChatInputCommandInteraction) {
   }
   if (issue === 'sync') await i.editReply({ content: 'Asking Bazarr to sync… this can take a few minutes.', components: [] });
 
-  touchCooldown(i.user.id);
   if (action === 'video' || action === 'replace') {
     const out = action === 'video' ? await reportVideo(res, reason, who) : await reportSubtitle(res, reason, who);
     await i.editReply({
