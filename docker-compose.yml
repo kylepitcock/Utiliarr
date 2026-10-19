@@ -3,7 +3,8 @@ services:
     image: ghcr.io/kylepitcock/utiliarr:latest
     container_name: utiliarr
     restart: unless-stopped
-    env_file: .env
+    environment:
+      TZ: America/New_York
     ports:
       - "5757:5757"
     volumes:

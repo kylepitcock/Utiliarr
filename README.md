@@ -18,21 +18,20 @@ Subtitle reports only work for subtitles Bazarr downloaded (not ones embedded in
 
 ```bash
 git clone https://github.com/kylepitcock/Utiliarr.git && cd Utiliarr
-cp .env.example .env      # set ADMIN_PASSWORD
 docker compose up -d
 ```
 
-Open <http://localhost:5757>, log in with `ADMIN_PASSWORD`, and fill in the **Settings** tab (URLs + API keys, Discord token). Data (SQLite) lives in `./data`.
+Open <http://localhost:5757>. On first run you'll be asked to choose the admin password (open it promptly - whoever loads the page first sets it). Then fill in the **Settings** tab (URLs + API keys, Discord token); the password can be changed there too. Data (SQLite) lives in `./data`.
 
 In **Settings**, point the service URLs at your server's address and each app's port (e.g. `http://192.168.1.10:7878`); no shared Docker network is needed.
 
 ### Sample `docker-compose.yml`
 
-Inline environment variables (service URLs, API keys and the Discord token are set in the dashboard, not here; also saved as [docker-compose.example.yml](docker-compose.example.yml)):
+(service URLs, API keys and the Discord token are set in the dashboard, not here; also saved as [docker-compose.example.yml](docker-compose.example.yml)):
 
 ```yaml
-# Sample compose. Only the admin password is set here; Jellyfin/Radarr/Sonarr/Bazarr
-# URLs, API keys and the Discord token are all entered in the web dashboard (Settings tab).
+# Sample compose. The admin password, Jellyfin/Radarr/Sonarr/Bazarr URLs, API keys and
+# the Discord token are all set in the web dashboard.
 services:
   utiliarr:
     image: ghcr.io/kylepitcock/utiliarr:latest
@@ -41,8 +40,6 @@ services:
     ports:
       - "5757:5757"
     environment:
-      ADMIN_PASSWORD: change-me
-      SESSION_SECRET: generate-with-openssl-rand-hex-32
       COOKIE_SECURE: "false"      # "true" behind an HTTPS reverse proxy
       TZ: America/New_York
     volumes:
@@ -61,17 +58,17 @@ The image (`ghcr.io/kylepitcock/utiliarr`, amd64 + arm64) is built and published
 
 ```bash
 npm ci && npm run build
-ADMIN_PASSWORD=... npm start      # or: npm run dev
+npm start      # or: npm run dev
 ```
 
 Requires Node 20+.
 
 ## Configuration
 
+All optional; the admin password and everything else is set in the dashboard.
+
 | Env var | Purpose |
 | --- | --- |
-| `ADMIN_PASSWORD` | **Required.** Admin UI password. |
-| `SESSION_SECRET` | Signs login cookies; set it so sessions survive restarts. |
 | `COOKIE_SECURE` | `true` when served over HTTPS. |
 | `PORT`, `DATA_DIR` | Defaults `5757`, `./data` (`/data` in Docker). |
 

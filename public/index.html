@@ -10,8 +10,9 @@
 <div id="login" class="hidden card narrow">
   <h1>Utiliarr</h1>
   <form id="loginForm">
+    <p id="setupMsg" class="mut hidden">First run: choose an admin password (min 8 characters).</p>
     <input type="password" id="pw" placeholder="Admin password" autofocus>
-    <button>Log in</button>
+    <button id="loginBtn">Log in</button>
     <p class="err" id="loginErr"></p>
   </form>
 </div>
@@ -32,7 +33,13 @@
       <div class="card"><h2>Active reports</h2><div id="active"></div></div>
     </section>
     <section id="reports" class="hidden"><div class="card"><h2>Report history</h2><div id="reportTable"></div></div></section>
-    <section id="settings" class="hidden"><form id="settingsForm"></form></section>
+    <section id="settings" class="hidden">
+      <form id="settingsForm"></form>
+      <form id="pwForm" class="card"><h2>Admin password</h2>
+        <div class="row"><input type="password" id="pwCur" placeholder="Current password" autocomplete="current-password" required>
+        <input type="password" id="pwNew" placeholder="New password (min 8)" autocomplete="new-password" required minlength="8">
+        <button>Change</button></div><p id="pwMsg"></p></form>
+    </section>
   </main>
 </div>
 <script src="app.js"></script>

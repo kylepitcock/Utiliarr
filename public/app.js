@@ -12,12 +12,13 @@ const bytes = (b) => { const u = ['B', 'KB', 'MB', 'GB', 'TB']; let i = 0; while
 const ago = (t) => dur(Math.floor((Date.now() - t) / 1000)) + ' ago';
 
 let tab = 'dashboard', timer;
-function showLogin() { $('#app').classList.add('hidden'); $('#login').classList.remove('hidden'); clearInterval(timer); }
 async function showApp() { $('#login').classList.add('hidden'); $('#app').classList.remove('hidden'); go(tab); clearInterval(timer); timer = setInterval(() => { if (tab === 'dashboard' || tab === 'reports') load[tab](); }, 10000); }
 
+let needsSetup = false;
+function showLogin() { $('#app').classList.add('hidden'); $('#login').classList.remove('hidden'); clearInterval(timer); $('#setupMsg').classList.toggle('hidden', !needsSetup); $('#loginBtn').textContent = needsSetup ? 'Set password' : 'Log in'; }
 $('#loginForm').onsubmit = async (e) => {
   e.preventDefault();
-  try { await api('/login', 'POST', { password: $('#pw').value }); $('#pw').value = ''; showApp(); } catch (er) { $('#loginErr').textContent = er.message; }
+  try { await api(needsSetup ? '/setup' : '/login', 'POST', { password: $('#pw').value }); needsSetup = false; $('#pw').value = ''; showApp(); } catch (er) { $('#loginErr').textContent = er.message; }
 };
 $('#logout').onclick = async () => { await api('/logout', 'POST'); showLogin(); };
 document.querySelectorAll('nav [data-tab]').forEach((b) => b.onclick = () => go(b.dataset.tab));
@@ -83,4 +84,9 @@ document.body.addEventListener('click', async (e) => {
   load[tab]();
 });
 
-api('/session').then((s) => s.authed ? showApp() : showLogin());
+$('#pwForm').onsubmit = async (e) => {
+  e.preventDefault();
+  try { await api('/password', 'POST', { current: $('#pwCur').value, next: $('#pwNew').value }); e.target.reset(); $('#pwMsg').innerHTML = '<span class="ok">Password changed</span>'; } catch (er) { $('#pwMsg').innerHTML = `<span class="err">${esc(er.message)}</span>`; }
+};
+
+api('/session').then((s) => { needsSetup = s.needsSetup; s.authed ? showApp() : showLogin(); });

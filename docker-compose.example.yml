@@ -1,5 +1,5 @@
-# Sample compose. Only the admin password is set here; Jellyfin/Radarr/Sonarr/Bazarr
-# URLs, API keys and the Discord token are all entered in the web dashboard (Settings tab).
+# Sample compose. The admin password, Jellyfin/Radarr/Sonarr/Bazarr URLs, API keys and
+# the Discord token are all set in the web dashboard.
 services:
   utiliarr:
     image: ghcr.io/kylepitcock/utiliarr:latest
@@ -8,8 +8,6 @@ services:
     ports:
       - "5757:5757"
     environment:
-      ADMIN_PASSWORD: change-me
-      SESSION_SECRET: generate-with-openssl-rand-hex-32
       COOKIE_SECURE: "false"      # "true" behind an HTTPS reverse proxy
       TZ: America/New_York
     volumes:

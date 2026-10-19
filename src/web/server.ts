@@ -1,4 +1,3 @@
-import crypto from 'node:crypto';
 import express, { NextFunction, Request, Response } from 'express';
 import path from 'node:path';
 import { env } from '../config.js';
@@ -10,17 +9,10 @@ import { bazarr } from '../clients/bazarr.js';
 import { getQueue } from '../services/queue.js';
 import { botStatus, startBot } from '../bot/index.js';
 import { tick } from '../services/watcher.js';
+import { checkPassword, hasPassword, MIN_PASSWORD, safeEq, setPassword, sign } from './auth.js';
 
 const COOKIE = 'utiliarr_session';
 const TTL = 12 * 3600_000;
-const secret = env.sessionSecret || crypto.randomBytes(32).toString('hex'); // random => sessions reset on restart
-
-const sign = (v: string) => crypto.createHmac('sha256', secret).update(v).digest('base64url');
-const safeEq = (a: string, b: string) => {
-  const ha = crypto.createHash('sha256').update(a).digest();
-  const hb = crypto.createHash('sha256').update(b).digest();
-  return crypto.timingSafeEqual(ha, hb);
-};
 function cookies(req: Request): Record<string, string> {
   return Object.fromEntries((req.headers.cookie ?? '').split(';').map((c) => c.trim().split('=')).filter((p) => p.length === 2) as [string, string][]);
 }
@@ -48,26 +40,47 @@ export function startWeb() {
   });
   app.use(express.static(path.resolve('public')));
 
+  const startSession = (res: Response) => {
+    const exp = String(Date.now() + TTL);
+    res.setHeader('Set-Cookie', `${COOKIE}=${exp}.${sign(exp)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${TTL / 1000}${env.secureCookie ? '; Secure' : ''}`);
+  };
   app.post('/api/login', (req, res) => {
     const ip = req.ip ?? '?';
     const a = attempts.get(ip);
     if (a && a.n >= 5 && a.until > Date.now()) return void res.status(429).json({ error: 'Too many attempts, try later' });
-    if (!env.adminPassword || !safeEq(String(req.body?.password ?? ''), env.adminPassword)) {
+    if (!hasPassword() || !checkPassword(String(req.body?.password ?? ''))) {
       attempts.set(ip, { n: (a?.n ?? 0) + 1, until: Date.now() + 5 * 60_000 });
       return void res.status(401).json({ error: 'Wrong password' });
     }
     attempts.delete(ip);
-    const exp = String(Date.now() + TTL);
-    res.setHeader('Set-Cookie', `${COOKIE}=${exp}.${sign(exp)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${TTL / 1000}${env.secureCookie ? '; Secure' : ''}`);
+    startSession(res);
+    res.json({ ok: true });
+  });
+  // First run only: whoever opens the UI first sets the admin password.
+  app.post('/api/setup', (req, res) => {
+    if (hasPassword()) return void res.status(409).json({ error: 'Already set up' });
+    const pw = String(req.body?.password ?? '');
+    if (pw.length < MIN_PASSWORD) return void res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD} characters` });
+    setPassword(pw);
+    startSession(res);
     res.json({ ok: true });
   });
   app.post('/api/logout', (_req, res) => {
     res.setHeader('Set-Cookie', `${COOKIE}=; HttpOnly; Path=/; Max-Age=0`);
     res.json({ ok: true });
   });
-  app.get('/api/session', (req, res) => res.json({ authed: authed(req) }));
+  app.get('/api/session', (req, res) => res.json({ authed: authed(req), needsSetup: !hasPassword() }));
 
   app.use('/api', requireAuth);
+
+  app.post('/api/password', (req, res) => {
+    const { current, next } = req.body as Record<string, string>;
+    if (!checkPassword(String(current ?? ''))) return void res.status(403).json({ error: 'Current password is wrong' });
+    if (String(next ?? '').length < MIN_PASSWORD) return void res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD} characters` });
+    setPassword(next);
+    startSession(res); // keep this browser logged in; other sessions are invalidated
+    res.json({ ok: true });
+  });
 
   app.get('/api/settings', (_req, res) => res.json(publicSettings()));
   app.put('/api/settings', wrap(async (req, res) => {

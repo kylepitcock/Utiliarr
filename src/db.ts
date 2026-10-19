@@ -8,6 +8,7 @@ export const db = new Database(path.join(env.dataDir, 'utiliarr.db'));
 db.pragma('journal_mode = WAL');
 
 db.exec(`
+CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
@@ -33,3 +34,7 @@ CREATE TABLE IF NOT EXISTS reports (
   last_search_at INTEGER
 );
 `);
+
+export const kvGet = (key: string) => (db.prepare('SELECT value FROM kv WHERE key=?').get(key) as { value: string } | undefined)?.value;
+export const kvSet = (key: string, value: string) =>
+  db.prepare('INSERT INTO kv(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(key, value);
