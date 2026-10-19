@@ -26,6 +26,8 @@ Open <http://localhost:8080>, log in with `ADMIN_PASSWORD`, and fill in the **Se
 
 If your other containers are on a shared Docker network, uncomment the `networks` lines in [docker-compose.yml](docker-compose.yml) so hostnames like `http://radarr:7878` resolve.
 
+A fuller sample with inline environment variables and a shared network is in [docker-compose.example.yml](docker-compose.example.yml).
+
 ### Discord bot setup
 
 1. Create an application at <https://discord.com/developers/applications>, add a **Bot**, copy the token.
