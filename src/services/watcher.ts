@@ -3,13 +3,16 @@ import { getNum } from '../settings.js';
 import { radarr, sonarr } from '../clients/arr.js';
 import { bazarr, latestSubtitle } from '../clients/bazarr.js';
 import { searchSubtitle } from './report.js';
+import { refreshJellyfin } from './notify.js';
 
 interface Row {
   id: number; kind: string; app: string; media_type: string; media_id: number; series_id: number | null;
   status: string; attempts: number; old_ref: string | null; created_at: number; last_search_at: number | null;
 }
 
+let completed = false;
 function update(id: number, fields: Record<string, unknown>) {
+  if (fields.status === 'completed') completed = true;
   const keys = Object.keys(fields);
   db.prepare(`UPDATE reports SET ${keys.map((k) => `${k}=?`).join(',')}, updated_at=? WHERE id=?`).run(...keys.map((k) => fields[k] as any), Date.now(), id);
 }
@@ -58,6 +61,7 @@ export async function tick() {
   running = true;
   try {
     const rows = db.prepare(`SELECT * FROM reports WHERE status IN ('searching','downloading')`).all() as Row[];
+    completed = false;
     for (const r of rows) {
       try {
         await check(r);
@@ -65,6 +69,7 @@ export async function tick() {
         console.warn(`[watcher] report ${r.id}: ${(e as Error).message}`);
       }
     }
+    if (completed) await refreshJellyfin('replacement finished');
   } finally {
     running = false;
   }

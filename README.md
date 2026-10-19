@@ -6,8 +6,10 @@ Miscellaneous utilities for a Jellyfin setup: a **Discord bot** and an **admin w
 
 - **`/report title:<name> issue:<video|subtitle>`** – type the name of the movie or show (autocomplete searches Radarr and Sonarr). For TV shows also give `season` and `episode`. Optional `reason`, and `language` for subtitle issues.
   - **Video**: Utiliarr marks the grabbed release as *failed* in Radarr/Sonarr (blocklisting it), optionally deletes the bad file, and starts a search for a different release.
-  - **Subtitle**: blacklists the current subtitle in Bazarr (the latest one, or the given language) and asks Bazarr to download a different one.
+  - **Subtitles are wrong or bad**: a popup offers **Sync timing (recommended)**, where Bazarr re-times the existing subtitle against the audio, or **Delete & download another**, which blacklists the current subtitle and fetches a different one. After a sync there is a "Still wrong" button that escalates to delete & download.
+  - **Subtitles are out of sync**: skips the popup and goes straight to Bazarr's sync.
   - A Yes/Cancel button confirms before anything changes.
+- **Jellyfin rescan** – when a replacement video/subtitle lands (or a sync finishes) Utiliarr asks Jellyfin to refresh its library so the new file shows up. Toggle in Settings; needs the Jellyfin URL and API key.
 - **Keeps looking** – a background watcher tracks every report. If the replacement download fails, nothing is found, or Bazarr errors, it re-searches (default every 15 min, up to 24 times) until a new file/subtitle lands. Radarr/Sonarr's own "redownload failed" handling still applies on top.
 - **`/queue [type]`** – Radarr + Sonarr queue in one embed: every item with progress and time left, plus total remaining size and "all done in ~X".
 - **Admin web UI** – dashboard (live queue, who's watching in Jellyfin, active reports), report history with cancel/retry, and all settings with per-service "Test" buttons.
@@ -79,7 +81,7 @@ Behaviour toggles (Settings tab): delete-file-on-report, report cooldown, retry 
 - Reporting a video **deletes the current file** by default so the replacement is accepted even if your quality cutoff is already met. Disable this in Settings if you prefer.
 - Any Discord user who can see the commands can report any title. Restrict `/report` to a role or channel with Discord's Server Settings → Integrations.
 - The admin UI has a single shared password and no TLS of its own: put it behind a reverse proxy (and set `COOKIE_SECURE=true`) before exposing it to the internet.
-- Bazarr's API is lightly documented; the blacklist/download calls follow its `/api/movies|episodes/blacklist` and `/subtitles` endpoints. If your version behaves differently, check the container logs.
+- Bazarr's API is lightly documented; the blacklist/download calls follow its `/api/movies|episodes/blacklist` and `/subtitles` endpoints, and sync uses `PATCH /api/subtitles?action=sync`. If your version behaves differently, check the container logs.
 
 ## Project layout
 

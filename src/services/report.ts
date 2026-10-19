@@ -3,6 +3,7 @@ import { getBool, getNum } from '../settings.js';
 import { radarr, sonarr, HistoryRecord } from '../clients/arr.js';
 import { bazarr, latestSubtitle, BazarrLang } from '../clients/bazarr.js';
 import { Resolved, UserFacingError } from './resolve.js';
+import { refreshJellyfin } from './notify.js';
 
 export interface Reporter {
   discordId?: string;
@@ -25,17 +26,17 @@ function assertNotActive(kind: string, mediaId: number, mediaType: string) {
 
 function insertReport(r: {
   kind: string; app: string; media_type: string; media_id: number; series_id?: number; title: string;
-  reason?: string; who: Reporter; old_ref?: string; language?: string; note?: string;
+  reason?: string; who: Reporter; old_ref?: string; language?: string; note?: string; status?: string;
 }) {
   const t = now();
   return Number(
     db
       .prepare(
         `INSERT INTO reports(kind,app,media_type,media_id,series_id,title,reason,discord_id,discord_name,status,attempts,old_ref,language,note,created_at,updated_at,last_search_at)
-         VALUES(?,?,?,?,?,?,?,?,?,'searching',1,?,?,?,?,?,?)`,
+         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       )
       .run(r.kind, r.app, r.media_type, r.media_id, r.series_id ?? null, r.title, r.reason ?? null, r.who.discordId ?? null,
-        r.who.discordName ?? null, r.old_ref ?? null, r.language ?? null, r.note ?? null, t, t, t).lastInsertRowid,
+        r.who.discordName ?? null, r.status ?? 'searching', r.status ? 0 : 1, r.old_ref ?? null, r.language ?? null, r.note ?? null, t, t, t).lastInsertRowid,
   );
 }
 
@@ -84,11 +85,9 @@ export async function reportVideo(res: Resolved, reason: string | undefined, who
   return { reportId, summary: notes.join(', ') };
 }
 
-export async function reportSubtitle(res: Resolved, reason: string | undefined, who: Reporter): Promise<ReportResult> {
+async function findSubtitle(res: Resolved) {
   const isMovie = res.kind === 'movie';
   const mediaId = isMovie ? res.movie.id : res.episode.id;
-  assertNotActive('subtitle', mediaId, res.kind);
-
   const rows = isMovie ? await bazarr.movieHistory(mediaId) : await bazarr.episodeHistory(mediaId);
   const target = latestSubtitle(rows, res.subtitle?.language);
   if (!target)
@@ -97,19 +96,50 @@ export async function reportSubtitle(res: Resolved, reason: string | undefined, 
         ? `Bazarr has no downloaded **${res.subtitle.label}** subtitle for **${res.title}**.`
         : `Bazarr has no downloaded subtitle for **${res.title}** (it may be embedded in the video file, which Bazarr can't replace).`,
     );
-  const lang: BazarrLang = { ...target.language!, forced: target.language?.forced, hi: target.language?.hi };
+  return { isMovie, mediaId, target };
+}
+
+export async function reportSubtitle(res: Resolved, reason: string | undefined, who: Reporter): Promise<ReportResult> {
+  const { isMovie, mediaId, target } = await (async () => {
+    const f = await findSubtitle(res);
+    assertNotActive('subtitle', f.mediaId, res.kind);
+    return f;
+  })();
+  const lang: BazarrLang = { ...target.language! };
 
   if (isMovie) await bazarr.blacklistMovieSub(mediaId, target);
-  else await bazarr.blacklistEpisodeSub(res.series.id, mediaId, target);
+  else await bazarr.blacklistEpisodeSub((res as Extract<Resolved, { kind: 'episode' }>).series.id, mediaId, target);
 
   const reportId = insertReport({
     kind: 'subtitle', app: 'bazarr', media_type: res.kind, media_id: mediaId,
-    series_id: isMovie ? undefined : res.series.id, title: res.title, reason, who,
+    series_id: isMovie ? undefined : (res as Extract<Resolved, { kind: 'episode' }>).series.id, title: res.title, reason, who,
     old_ref: target.subs_id, language: JSON.stringify(lang), note: `blacklisted ${target.provider} subtitle (${lang.name})`,
   });
   // Bazarr's search can take a while; don't fail the report if it errors - the watcher retries.
   searchSubtitle(reportId).catch(() => undefined);
   return { reportId, summary: `blacklisted ${target.provider} ${lang.name} subtitle` };
+}
+
+/** Re-time the current subtitle with Bazarr instead of replacing it. Blocks until Bazarr finishes. */
+export async function syncSubtitle(res: Resolved, reason: string | undefined, who: Reporter): Promise<ReportResult> {
+  const { isMovie, mediaId, target } = await findSubtitle(res);
+  if (!target.subtitles_path) throw new UserFacingError('Bazarr has no file path for that subtitle, so it cannot be synced.');
+  const lang = target.language?.name ?? 'subtitle';
+  try {
+    await bazarr.syncSubtitle(isMovie ? 'movie' : 'episode', mediaId, target);
+  } catch (e) {
+    insertReport({
+      kind: 'sync', app: 'bazarr', media_type: res.kind, media_id: mediaId, title: res.title, reason, who,
+      note: `sync failed: ${(e as Error).message}`.slice(0, 300), status: 'error',
+    });
+    throw e;
+  }
+  const reportId = insertReport({
+    kind: 'sync', app: 'bazarr', media_type: res.kind, media_id: mediaId, title: res.title, reason, who,
+    note: `synced ${target.provider ?? ''} ${lang} subtitle`.replace('  ', ' '), status: 'completed',
+  });
+  void refreshJellyfin('subtitle synced');
+  return { reportId, summary: `synced the ${lang} subtitle` };
 }
 
 export async function searchSubtitle(reportId: number) {

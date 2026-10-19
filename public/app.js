@@ -30,7 +30,7 @@ function go(t) {
 }
 
 const reportRows = (rs, actions) => rs.length ? `<table><tr><th>When</th><th>Type</th><th>Title</th><th>By</th><th>Status</th><th>Tries</th>${actions ? '<th></th>' : ''}</tr>` + rs.map((r) =>
-  `<tr><td class="mut">${ago(r.created_at)}</td><td>${r.kind === 'video' ? 'Video' : 'Subtitle'}</td><td>${esc(r.title)}<br><small>${esc(r.reason || '')} ${esc(r.note || '')}</small></td><td>${esc(r.discord_name || '—')}</td><td><span class="pill ${r.status}">${r.status}</span></td><td>${r.attempts}</td>` +
+  `<tr><td class="mut">${ago(r.created_at)}</td><td>${{ video: 'Video', subtitle: 'Subtitle', sync: 'Sync' }[r.kind] || r.kind}</td><td>${esc(r.title)}<br><small>${esc(r.reason || '')} ${esc(r.note || '')}</small></td><td>${esc(r.discord_name || '—')}</td><td><span class="pill ${r.status}">${r.status}</span></td><td>${r.attempts}</td>` +
   (actions ? `<td>${['searching', 'downloading'].includes(r.status) ? `<button class="sec" data-act="cancel" data-id="${r.id}">Cancel</button>` : ['gave_up', 'cancelled'].includes(r.status) ? `<button class="sec" data-act="retry" data-id="${r.id}">Retry</button>` : ''}</td>` : '') + '</tr>').join('') + '</table>' : '<p class="mut">Nothing yet.</p>';
 
 const load = {

@@ -44,6 +44,17 @@ export const bazarr = {
       query: { seriesid: seriesId, episodeid: episodeId, provider: h.provider, subs_id: h.subs_id, language: h.language?.code2, subtitles_path: h.subtitles_path },
     });
   },
+  /** Re-time an existing subtitle file against the video's audio (Bazarr's subtitle sync tool). */
+  syncSubtitle(type: 'movie' | 'episode', id: number, h: BazarrHistory) {
+    return http.request('/api/subtitles', {
+      method: 'PATCH',
+      query: {
+        action: 'sync', type, id, language: h.language?.code2, path: h.subtitles_path,
+        forced: !!h.language?.forced, hi: !!h.language?.hi, reference: 'a:0',
+      },
+      timeoutMs: 15 * 60_000, // syncing can take minutes
+    });
+  },
   /** Ask Bazarr to search + download a fresh subtitle (blacklisted ones are skipped by Bazarr). */
   downloadMovieSub(radarrId: number, l: BazarrLang) {
     return http.request('/api/movies/subtitles', {

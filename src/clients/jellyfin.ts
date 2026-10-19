@@ -46,6 +46,7 @@ export const jellyfin = {
   configured: () => http.configured,
   ping: () => http.request<{ ServerName: string; Version: string }>('/System/Info'),
   users: () => http.request<JfUser[]>('/Users'),
+  refreshLibrary: () => http.request('/Library/Refresh', { method: 'POST' }),
   async findUser(name: string) {
     const users = await this.users();
     return users.find((u) => u.Name.toLowerCase() === name.trim().toLowerCase());
