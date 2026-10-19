@@ -74,7 +74,9 @@ export async function reportVideo(res: Resolved, reason: string | undefined, who
     await (isMovie ? radarr.deleteFile(fileId) : sonarr.deleteFile(fileId));
     notes.push('deleted file');
   }
-  // 3. Kick off a search.
+  // 3. Radarr/Sonarr may have unmonitored it on delete; unmonitored items are never retried.
+  if (await (isMovie ? radarr.ensureMonitored(mediaId) : sonarr.ensureMonitored(mediaId))) notes.push('re-monitored');
+  // 4. Kick off a search.
   await (isMovie ? radarr.search(mediaId) : sonarr.search(mediaId));
 
   const reportId = insertReport({

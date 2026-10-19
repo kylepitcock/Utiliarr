@@ -85,6 +85,12 @@ export const radarr = Object.assign(new ArrClient('radarr'), {
   deleteFile(fileId: number) {
     return radarr.http.request(`/api/v3/moviefile/${fileId}`, { method: 'DELETE' });
   },
+  /** Deleting a file can unmonitor the movie ("Unmonitor Deleted Movies"); put it back so it keeps being searched. */
+  async ensureMonitored(movieId: number) {
+    const m = await radarr.http.request<any>(`/api/v3/movie/${movieId}`);
+    if (!m.monitored) await radarr.http.request(`/api/v3/movie/${movieId}`, { method: 'PUT', body: { ...m, monitored: true } });
+    return !m.monitored;
+  },
   search(movieId: number) {
     return radarr.command({ name: 'MoviesSearch', movieIds: [movieId] });
   },
@@ -126,6 +132,12 @@ export const sonarr = Object.assign(new ArrClient('sonarr'), {
   },
   deleteFile(fileId: number) {
     return sonarr.http.request(`/api/v3/episodefile/${fileId}`, { method: 'DELETE' });
+  },
+  /** Deleting a file can unmonitor the episode; put it back so it keeps being searched. */
+  async ensureMonitored(episodeId: number) {
+    const e = await sonarr.http.request<{ monitored: boolean }>(`/api/v3/episode/${episodeId}`);
+    if (!e.monitored) await sonarr.http.request('/api/v3/episode/monitor', { method: 'PUT', body: { episodeIds: [episodeId], monitored: true } });
+    return !e.monitored;
   },
   search(episodeId: number) {
     return sonarr.command({ name: 'EpisodeSearch', episodeIds: [episodeId] });

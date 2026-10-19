@@ -39,7 +39,13 @@ async function check(r: Row) {
 
     // Not in queue and no new file: either the download failed or nothing was found yet.
     if (r.status === 'downloading') update(r.id, { status: 'searching' });
-    if (!due) return;
+    // Keep it monitored (delete can unmonitor it, which stops RSS and auto-redownload).
+    await (isMovie ? radarr.ensureMonitored(r.media_id) : sonarr.ensureMonitored(r.media_id));
+    // A failed download since our last search means that attempt is dead: search again right away.
+    const since = r.last_search_at ?? r.created_at;
+    const history = await (isMovie ? radarr.history(r.media_id) : sonarr.history(r.media_id));
+    const failed = history.some((h) => h.eventType === 'downloadFailed' && Date.parse(h.date) > since);
+    if (!due && !failed) return;
     if (r.attempts >= maxAttempts) return update(r.id, { status: 'gave_up', note: 'Gave up after max automatic searches' });
     await (isMovie ? radarr.search(r.media_id) : sonarr.search(r.media_id));
     return update(r.id, { attempts: r.attempts + 1, last_search_at: Date.now() });
