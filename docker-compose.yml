@@ -1,0 +1,19 @@
+services:
+  utiliarr:
+    build: .
+    # or, once published: image: ghcr.io/kylepitcock/utiliarr:latest
+    container_name: utiliarr
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    # Join the network your Jellyfin/Radarr/Sonarr/Bazarr containers use so the
+    # service hostnames in the URLs resolve. Remove if you use host IPs instead.
+    # networks: [media]
+
+# networks:
+#   media:
+#     external: true
+#     name: your_media_network

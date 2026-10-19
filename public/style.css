@@ -1,0 +1,27 @@
+:root{--bg:#0f1115;--card:#181b22;--line:#2a2f3a;--fg:#e6e8ee;--mut:#8b93a5;--acc:#6c8cff;--bad:#ff6b6b;--ok:#4ade80;--warn:#fbbf24}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif}
+.hidden{display:none!important}
+header{display:flex;align-items:center;gap:24px;padding:12px 24px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+h1{margin:0;font-size:20px}h2{margin:0 0 12px;font-size:16px}h3{margin:16px 0 8px;font-size:14px;color:var(--mut)}
+small{color:var(--mut);font-weight:400}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav button{background:none;color:var(--mut);border:0;padding:6px 12px;border-radius:6px;cursor:pointer}
+nav button.active,nav button:hover{background:var(--card);color:var(--fg)}
+main{max-width:1000px;margin:0 auto;padding:24px 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+.narrow{max-width:340px;margin:15vh auto}
+input,select{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font:inherit;width:100%}
+input[type=checkbox]{width:auto}
+button{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:7px 14px;font:inherit;cursor:pointer}
+button.sec{background:var(--line)}button.danger{background:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1;min-width:140px}.row>button{flex:0}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mut);font-weight:500}
+.bar{height:6px;background:var(--line);border-radius:3px;min-width:80px}.bar>i{display:block;height:100%;background:var(--acc);border-radius:3px}
+.err{color:var(--bad)}.ok{color:var(--ok)}.warn{color:var(--warn)}.mut{color:var(--mut)}
+.field{display:grid;grid-template-columns:220px 1fr;gap:8px;align-items:center;margin:8px 0}
+.field small{grid-column:2}
+@media(max-width:600px){.field{grid-template-columns:1fr}.field small{grid-column:1}}
+.pill{padding:1px 8px;border-radius:10px;font-size:12px;background:var(--line)}
+.pill.completed{color:var(--ok)}.pill.gave_up,.pill.error{color:var(--bad)}.pill.searching,.pill.downloading{color:var(--warn)}

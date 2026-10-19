@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Utiliarr</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="login" class="hidden card narrow">
+  <h1>Utiliarr</h1>
+  <form id="loginForm">
+    <input type="password" id="pw" placeholder="Admin password" autofocus>
+    <button>Log in</button>
+    <p class="err" id="loginErr"></p>
+  </form>
+</div>
+<div id="app" class="hidden">
+  <header>
+    <h1>Utiliarr</h1>
+    <nav>
+      <button data-tab="dashboard" class="active">Dashboard</button>
+      <button data-tab="reports">Reports</button>
+      <button data-tab="users">Users</button>
+      <button data-tab="settings">Settings</button>
+      <button id="logout">Log out</button>
+    </nav>
+  </header>
+  <main>
+    <section id="dashboard">
+      <div class="card"><h2>Download queue <small id="qsum"></small></h2><div id="queue"></div></div>
+      <div class="card"><h2>Now playing</h2><div id="playing"></div></div>
+      <div class="card"><h2>Active reports</h2><div id="active"></div></div>
+    </section>
+    <section id="reports" class="hidden"><div class="card"><h2>Report history</h2><div id="reportTable"></div></div></section>
+    <section id="users" class="hidden">
+      <div class="card"><h2>Linked users</h2><div id="linkTable"></div></div>
+      <div class="card"><h2>Add link</h2>
+        <form id="linkForm" class="row">
+          <input id="lDiscord" placeholder="Discord user ID" required>
+          <input id="lName" placeholder="Discord name (optional)">
+          <select id="lJf" required></select>
+          <button>Link</button>
+        </form><p class="err" id="linkErr"></p>
+      </div>
+    </section>
+    <section id="settings" class="hidden"><form id="settingsForm"></form></section>
+  </main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
