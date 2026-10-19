@@ -22,7 +22,7 @@ cp .env.example .env      # set ADMIN_PASSWORD (and optionally the rest)
 docker compose up -d --build
 ```
 
-Open <http://localhost:8080>, log in with `ADMIN_PASSWORD`, and fill in the **Settings** tab (URLs + API keys, Discord token). Data (SQLite) lives in `./data`.
+Open <http://localhost:5757>, log in with `ADMIN_PASSWORD`, and fill in the **Settings** tab (URLs + API keys, Discord token). Data (SQLite) lives in `./data`.
 
 If your other containers are on a shared Docker network, uncomment the `networks` lines in [docker-compose.yml](docker-compose.yml) so hostnames like `http://radarr:7878` resolve.
 
@@ -50,7 +50,7 @@ Requires Node 20+.
 | `ADMIN_PASSWORD` | **Required.** Admin UI password. |
 | `SESSION_SECRET` | Signs login cookies; set it so sessions survive restarts. |
 | `COOKIE_SECURE` | `true` when served over HTTPS. |
-| `PORT`, `DATA_DIR` | Defaults `8080`, `./data` (`/data` in Docker). |
+| `PORT`, `DATA_DIR` | Defaults `5757`, `./data` (`/data` in Docker). |
 | `JELLYFIN_*`, `RADARR_*`, `SONARR_*`, `BAZARR_*`, `DISCORD_*` | Optional first-run defaults; values saved in the UI take precedence. |
 
 Behaviour toggles (Settings tab): delete-file-on-report, report cooldown, retry interval and max attempts.

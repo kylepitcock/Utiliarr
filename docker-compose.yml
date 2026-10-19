@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     env_file: .env
     ports:
-      - "8080:8080"
+      - "5757:5757"
     volumes:
       - ./data:/data
     # Join the network your Jellyfin/Radarr/Sonarr/Bazarr containers use so the

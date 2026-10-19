@@ -7,7 +7,7 @@ services:
     container_name: utiliarr
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "5757:5757"
     environment:
       ADMIN_PASSWORD: change-me
       SESSION_SECRET: generate-with-openssl-rand-hex-32
