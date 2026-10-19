@@ -26,7 +26,46 @@ Open <http://localhost:5757>, log in with `ADMIN_PASSWORD`, and fill in the **Se
 
 If your other containers are on a shared Docker network, uncomment the `networks` lines in [docker-compose.yml](docker-compose.yml) so hostnames like `http://radarr:7878` resolve.
 
-A fuller sample with inline environment variables and a shared network is in [docker-compose.example.yml](docker-compose.example.yml).
+### Sample `docker-compose.yml`
+
+Inline environment variables and a shared network (also saved as [docker-compose.example.yml](docker-compose.example.yml)):
+
+```yaml
+# Sample: Utiliarr alongside an existing media stack on a shared network.
+# Copy to docker-compose.yml and adjust. Service URLs/API keys can also be
+# entered later in the admin UI (Settings tab) instead of here.
+services:
+  utiliarr:
+    build: .
+    container_name: utiliarr
+    restart: unless-stopped
+    ports:
+      - "5757:5757"
+    environment:
+      ADMIN_PASSWORD: change-me
+      SESSION_SECRET: generate-with-openssl-rand-hex-32
+      COOKIE_SECURE: "false"      # "true" behind an HTTPS reverse proxy
+      TZ: America/New_York
+      JELLYFIN_URL: http://jellyfin:8096
+      JELLYFIN_API_KEY: ""
+      RADARR_URL: http://radarr:7878
+      RADARR_API_KEY: ""
+      SONARR_URL: http://sonarr:8989
+      SONARR_API_KEY: ""
+      BAZARR_URL: http://bazarr:6767
+      BAZARR_API_KEY: ""
+      DISCORD_TOKEN: ""
+      DISCORD_CLIENT_ID: ""
+      DISCORD_GUILD_ID: ""
+    volumes:
+      - ./data:/data
+    networks: [media]
+
+networks:
+  media:
+    external: true
+    name: media   # the network your Jellyfin/Radarr/Sonarr/Bazarr containers are on
+```
 
 ### Discord bot setup
 
