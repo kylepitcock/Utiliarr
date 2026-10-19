@@ -22,7 +22,6 @@ export const FIELDS: FieldDef[] = [
   { key: 'discord.token', label: 'Bot token', group: 'Discord', secret: true, default: process.env.DISCORD_TOKEN },
   { key: 'discord.clientId', label: 'Application (client) ID', group: 'Discord', default: process.env.DISCORD_CLIENT_ID },
   { key: 'discord.guildId', label: 'Guild (server) ID', group: 'Discord', default: process.env.DISCORD_GUILD_ID, help: 'Optional. Set for instant slash-command registration in one server.' },
-  { key: 'bot.allowSelfLink', label: 'Let users link their own Jellyfin account with /link', group: 'Behaviour', type: 'bool', default: 'true', help: 'Turn off to have admins create links in the Users tab only.' },
   { key: 'bot.deleteFileOnFail', label: 'Delete the bad file when a video is reported', group: 'Behaviour', type: 'bool', default: 'true', help: 'Needed so Radarr/Sonarr will accept a replacement even if the quality cutoff is already met.' },
   { key: 'bot.cooldownSeconds', label: 'Per-user report cooldown (seconds)', group: 'Behaviour', type: 'number', default: '60' },
   { key: 'watcher.maxAttempts', label: 'Max automatic re-searches per report', group: 'Behaviour', type: 'number', default: '24' },

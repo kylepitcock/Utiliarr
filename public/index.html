@@ -21,7 +21,6 @@
     <nav>
       <button data-tab="dashboard" class="active">Dashboard</button>
       <button data-tab="reports">Reports</button>
-      <button data-tab="users">Users</button>
       <button data-tab="settings">Settings</button>
       <button id="logout">Log out</button>
     </nav>
@@ -33,17 +32,6 @@
       <div class="card"><h2>Active reports</h2><div id="active"></div></div>
     </section>
     <section id="reports" class="hidden"><div class="card"><h2>Report history</h2><div id="reportTable"></div></div></section>
-    <section id="users" class="hidden">
-      <div class="card"><h2>Linked users</h2><div id="linkTable"></div></div>
-      <div class="card"><h2>Add link</h2>
-        <form id="linkForm" class="row">
-          <input id="lDiscord" placeholder="Discord user ID" required>
-          <input id="lName" placeholder="Discord name (optional)">
-          <select id="lJf" required></select>
-          <button>Link</button>
-        </form><p class="err" id="linkErr"></p>
-      </div>
-    </section>
     <section id="settings" class="hidden"><form id="settingsForm"></form></section>
   </main>
 </div>

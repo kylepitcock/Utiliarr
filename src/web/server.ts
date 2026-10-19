@@ -129,23 +129,5 @@ export function startWeb() {
     res.json({ ok: true });
   }));
 
-  app.get('/api/links', (_req, res) => res.json(db.prepare('SELECT * FROM user_links ORDER BY created_at DESC').all()));
-  app.get('/api/jellyfin/users', wrap(async (_req, res) => res.json(await jellyfin.users())));
-  app.post('/api/links', wrap(async (req, res) => {
-    const { discordId, discordName, jellyfinUserId } = req.body as Record<string, string>;
-    if (!/^\d{15,25}$/.test(discordId ?? '')) return void res.status(400).json({ error: 'Discord ID must be a numeric snowflake' });
-    const user = (await jellyfin.users()).find((u) => u.Id === jellyfinUserId);
-    if (!user) return void res.status(400).json({ error: 'Unknown Jellyfin user' });
-    db.prepare(
-      `INSERT INTO user_links(discord_id,discord_name,jellyfin_user_id,jellyfin_user_name,created_at) VALUES(?,?,?,?,?)
-       ON CONFLICT(discord_id) DO UPDATE SET jellyfin_user_id=excluded.jellyfin_user_id, jellyfin_user_name=excluded.jellyfin_user_name, discord_name=excluded.discord_name`,
-    ).run(discordId, discordName || null, user.Id, user.Name, Date.now());
-    res.json({ ok: true });
-  }));
-  app.delete('/api/links/:discordId', (req, res) => {
-    db.prepare('DELETE FROM user_links WHERE discord_id=?').run(req.params.discordId);
-    res.json({ ok: true });
-  });
-
   app.listen(env.port, () => console.log(`[web] admin UI on :${env.port}`));
 }

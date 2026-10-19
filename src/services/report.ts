@@ -94,10 +94,10 @@ export async function reportSubtitle(res: Resolved, reason: string | undefined, 
   if (!target)
     throw new UserFacingError(
       res.subtitle
-        ? `Bazarr has no downloaded **${res.subtitle.label}** subtitle for this (it may be embedded in the video file, which Bazarr can't replace).`
-        : 'Bazarr has no downloaded subtitle for this video.',
+        ? `Bazarr has no downloaded **${res.subtitle.label}** subtitle for **${res.title}**.`
+        : `Bazarr has no downloaded subtitle for **${res.title}** (it may be embedded in the video file, which Bazarr can't replace).`,
     );
-  const lang: BazarrLang = { ...target.language!, forced: target.language?.forced ?? res.subtitle?.forced, hi: target.language?.hi ?? res.subtitle?.hi };
+  const lang: BazarrLang = { ...target.language!, forced: target.language?.forced, hi: target.language?.hi };
 
   if (isMovie) await bazarr.blacklistMovieSub(mediaId, target);
   else await bazarr.blacklistEpisodeSub(res.series.id, mediaId, target);

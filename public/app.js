@@ -45,12 +45,6 @@ const load = {
     $('#active').innerHTML = reportRows(rs.filter((r) => ['searching', 'downloading'].includes(r.status)), true);
   },
   async reports() { $('#reportTable').innerHTML = reportRows(await api('/reports'), true); },
-  async users() {
-    const links = await api('/links');
-    $('#linkTable').innerHTML = links.length ? '<table><tr><th>Discord</th><th>Jellyfin user</th><th></th></tr>' + links.map((l) =>
-      `<tr><td>${esc(l.discord_name || '')} <small>${esc(l.discord_id)}</small></td><td>${esc(l.jellyfin_user_name)}</td><td><button class="danger" data-act="unlink" data-id="${esc(l.discord_id)}">Remove</button></td></tr>`).join('') + '</table>' : '<p class="mut">No links yet.</p>';
-    try { const us = await api('/jellyfin/users'); $('#lJf').innerHTML = us.map((u) => `<option value="${esc(u.Id)}">${esc(u.Name)}</option>`).join(''); } catch (e) { $('#lJf').innerHTML = `<option>${esc(e.message)}</option>`; }
-  },
   async settings() {
     const fs = await api('/settings');
     let html = '', group = '';
@@ -85,13 +79,8 @@ $('#settingsForm').onclick = async (e) => {
 };
 document.body.addEventListener('click', async (e) => {
   const { act, id } = e.target.dataset || {}; if (!act) return;
-  if (act === 'unlink') await api('/links/' + id, 'DELETE');
-  else await api(`/reports/${id}/${act}`, 'POST');
+  await api(`/reports/${id}/${act}`, 'POST');
   load[tab]();
 });
-$('#linkForm').onsubmit = async (e) => {
-  e.preventDefault();
-  try { await api('/links', 'POST', { discordId: $('#lDiscord').value.trim(), discordName: $('#lName').value.trim(), jellyfinUserId: $('#lJf').value }); $('#linkErr').textContent = ''; e.target.reset(); load.users(); } catch (er) { $('#linkErr').textContent = er.message; }
-};
 
 api('/session').then((s) => s.authed ? showApp() : showLogin());

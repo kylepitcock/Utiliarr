@@ -12,13 +12,6 @@ CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS user_links (
-  discord_id TEXT PRIMARY KEY,
-  discord_name TEXT,
-  jellyfin_user_id TEXT NOT NULL,
-  jellyfin_user_name TEXT NOT NULL,
-  created_at INTEGER NOT NULL
-);
 CREATE TABLE IF NOT EXISTS reports (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   kind TEXT NOT NULL,              -- 'video' | 'subtitle'

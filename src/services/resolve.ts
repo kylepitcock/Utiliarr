@@ -1,68 +1,58 @@
-import { db } from '../db.js';
-import { jellyfin, JfSession } from '../clients/jellyfin.js';
 import { radarr, sonarr, RadarrMovie, SonarrEpisode, SonarrSeries } from '../clients/arr.js';
 
 export class UserFacingError extends Error {}
 
-export interface Link {
-  discord_id: string;
-  jellyfin_user_id: string;
-  jellyfin_user_name: string;
-}
-export const getLink = (discordId: string) =>
-  db.prepare('SELECT * FROM user_links WHERE discord_id = ?').get(discordId) as Link | undefined;
-
 export type Resolved =
-  | { kind: 'movie'; title: string; movie: RadarrMovie; session: JfSession; subtitle?: SubInfo }
-  | { kind: 'episode'; title: string; series: SonarrSeries; episode: SonarrEpisode; session: JfSession; subtitle?: SubInfo };
+  | { kind: 'movie'; title: string; movie: RadarrMovie; subtitle?: SubInfo }
+  | { kind: 'episode'; title: string; series: SonarrSeries; episode: SonarrEpisode; subtitle?: SubInfo };
 
 export interface SubInfo {
-  language?: string; // Jellyfin 3-letter code
-  forced?: boolean;
-  hi?: boolean;
+  language?: string;
   label: string;
 }
 
-function activeSubtitle(session: JfSession): SubInfo | undefined {
-  const idx = session.PlayState?.SubtitleStreamIndex;
-  if (idx === undefined || idx < 0) return undefined;
-  const s = session.NowPlayingItem?.MediaStreams?.find((m) => m.Index === idx && m.Type === 'Subtitle');
-  if (!s) return undefined;
-  return { language: s.Language, forced: s.IsForced, hi: s.IsHearingImpaired, label: s.DisplayTitle ?? s.Language ?? 'subtitle' };
+const cache = new Map<string, { at: number; v: any }>();
+async function cached<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const c = cache.get(key);
+  if (c && Date.now() - c.at < 60_000) return c.v;
+  const v = await fn();
+  cache.set(key, { at: Date.now(), v });
+  return v;
 }
 
-/** Work out which Radarr/Sonarr item a Discord user is currently watching in Jellyfin. */
-export async function resolveNowPlaying(discordId: string): Promise<Resolved> {
-  const link = getLink(discordId);
-  if (!link) throw new UserFacingError('Your Discord account is not linked to a Jellyfin user yet. Use `/link` first.');
-  const session = await jellyfin.nowPlaying(link.jellyfin_user_id);
-  const item = session?.NowPlayingItem;
-  if (!session || !item) throw new UserFacingError(`Nothing is playing for **${link.jellyfin_user_name}** in Jellyfin right now. Start the video, then run the command again.`);
-  const subtitle = activeSubtitle(session);
+/** Autocomplete choices. Value is "m:<radarrId>" or "s:<sonarrSeriesId>". */
+export async function searchTitles(query: string): Promise<{ name: string; value: string }[]> {
+  const q = query.trim().toLowerCase();
+  const [movies, series] = await Promise.all([
+    radarr.configured ? cached('movies', () => radarr.allMovies()).catch(() => []) : [],
+    sonarr.configured ? cached('series', () => sonarr.allSeries()).catch(() => []) : [],
+  ]);
+  const out = [
+    ...movies.filter((m) => m.hasFile && m.title.toLowerCase().includes(q)).map((m) => ({ name: `🎬 ${m.title} (${m.year})`, value: `m:${m.id}` })),
+    ...series.filter((s) => s.title.toLowerCase().includes(q)).map((s) => ({ name: `📺 ${s.title}`, value: `s:${s.id}` })),
+  ];
+  return out.sort((a, b) => a.name.localeCompare(b.name)).slice(0, 25).map((o) => ({ name: o.name.slice(0, 100), value: o.value }));
+}
 
-  if (item.Type === 'Movie') {
-    if (!radarr.configured) throw new UserFacingError('Radarr is not configured.');
-    const tmdb = Number(item.ProviderIds?.Tmdb);
-    let movie = tmdb ? await radarr.movieByTmdb(tmdb) : undefined;
-    if (!movie && item.ProviderIds?.Imdb) movie = await radarr.movieByImdb(item.ProviderIds.Imdb);
-    if (!movie) throw new UserFacingError(`**${item.Name}** isn't managed by Radarr, so I can't replace it.`);
-    return { kind: 'movie', title: `${movie.title} (${movie.year})`, movie, session, subtitle };
+export async function resolveTitle(ref: string, season: number | null, episodeNo: number | null, language?: string): Promise<Resolved> {
+  const [type, idStr] = ref.split(':');
+  const id = Number(idStr);
+  if (!id || (type !== 'm' && type !== 's')) throw new UserFacingError('Please pick a title from the autocomplete list.');
+  const subtitle: SubInfo | undefined = language ? { language, label: language } : undefined;
+
+  if (type === 'm') {
+    const movie = await radarr.movie(id).catch(() => undefined);
+    if (!movie) throw new UserFacingError('That movie no longer exists in Radarr.');
+    if (!movie.hasFile) throw new UserFacingError(`**${movie.title}** has no file yet.`);
+    return { kind: 'movie', title: `${movie.title} (${movie.year})`, movie, subtitle };
   }
 
-  if (item.Type === 'Episode') {
-    if (!sonarr.configured) throw new UserFacingError('Sonarr is not configured.');
-    let series: SonarrSeries | undefined;
-    const sj = item.SeriesId ? await jellyfin.item(item.SeriesId) : undefined;
-    const tvdb = Number(sj?.ProviderIds?.Tvdb);
-    if (tvdb) series = await sonarr.seriesByTvdb(tvdb);
-    if (!series && item.SeriesName) series = await sonarr.seriesByTitle(item.SeriesName);
-    if (!series) throw new UserFacingError(`**${item.SeriesName ?? item.Name}** isn't managed by Sonarr, so I can't replace it.`);
-    const eps = await sonarr.episodes(series.id);
-    const episode = eps.find((e) => e.seasonNumber === item.ParentIndexNumber && e.episodeNumber === item.IndexNumber);
-    if (!episode) throw new UserFacingError(`Couldn't find S${item.ParentIndexNumber}E${item.IndexNumber} of **${series.title}** in Sonarr.`);
-    const code = `S${String(episode.seasonNumber).padStart(2, '0')}E${String(episode.episodeNumber).padStart(2, '0')}`;
-    return { kind: 'episode', title: `${series.title} ${code} - ${episode.title}`, series, episode, session, subtitle };
-  }
-
-  throw new UserFacingError(`Playing item type **${item.Type}** isn't supported (only movies and TV episodes).`);
+  if (season === null || episodeNo === null) throw new UserFacingError('That is a TV show, so please also fill in the `season` and `episode` options.');
+  const series = (await cached('series', () => sonarr.allSeries())).find((s) => s.id === id);
+  if (!series) throw new UserFacingError('That show no longer exists in Sonarr.');
+  const episode = (await sonarr.episodes(id)).find((e) => e.seasonNumber === season && e.episodeNumber === episodeNo);
+  if (!episode) throw new UserFacingError(`Couldn't find S${season}E${episodeNo} of **${series.title}**.`);
+  if (!episode.hasFile) throw new UserFacingError(`S${season}E${episodeNo} of **${series.title}** has no file yet.`);
+  const code = `S${String(season).padStart(2, '0')}E${String(episodeNo).padStart(2, '0')}`;
+  return { kind: 'episode', title: `${series.title} ${code} - ${episode.title}`, series, episode, subtitle };
 }

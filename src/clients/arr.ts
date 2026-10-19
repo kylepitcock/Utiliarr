@@ -73,6 +73,9 @@ export const radarr = Object.assign(new ArrClient('radarr'), {
     const all = await radarr.http.request<RadarrMovie[]>('/api/v3/movie');
     return all.find((m) => m.imdbId === imdbId);
   },
+  allMovies() {
+    return radarr.http.request<RadarrMovie[]>('/api/v3/movie');
+  },
   movie(id: number) {
     return radarr.http.request<RadarrMovie>(`/api/v3/movie/${id}`);
   },
@@ -100,6 +103,9 @@ export const sonarr = Object.assign(new ArrClient('sonarr'), {
   async seriesByTvdb(tvdbId: number) {
     const r = await sonarr.http.request<SonarrSeries[]>('/api/v3/series', { query: { tvdbId } });
     return r[0];
+  },
+  allSeries() {
+    return sonarr.http.request<SonarrSeries[]>('/api/v3/series');
   },
   async seriesByTitle(title: string) {
     const all = await sonarr.http.request<SonarrSeries[]>('/api/v3/series');
