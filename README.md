@@ -24,14 +24,14 @@ docker compose up -d --build
 
 Open <http://localhost:5757>, log in with `ADMIN_PASSWORD`, and fill in the **Settings** tab (URLs + API keys, Discord token). Data (SQLite) lives in `./data`.
 
-If your other containers are on a shared Docker network, uncomment the `networks` lines in [docker-compose.yml](docker-compose.yml) so hostnames like `http://radarr:7878` resolve.
+Point the service URLs at your server's address and each app's port (e.g. `http://192.168.1.10:7878`); no shared Docker network is needed.
 
 ### Sample `docker-compose.yml`
 
-Inline environment variables and a shared network (also saved as [docker-compose.example.yml](docker-compose.example.yml)):
+Inline environment variables (also saved as [docker-compose.example.yml](docker-compose.example.yml)):
 
 ```yaml
-# Sample: Utiliarr alongside an existing media stack on a shared network.
+# Sample: Utiliarr pointing at your existing Jellyfin/Radarr/Sonarr/Bazarr by host address.
 # Copy to docker-compose.yml and adjust. Service URLs/API keys can also be
 # entered later in the admin UI (Settings tab) instead of here.
 services:
@@ -46,25 +46,19 @@ services:
       SESSION_SECRET: generate-with-openssl-rand-hex-32
       COOKIE_SECURE: "false"      # "true" behind an HTTPS reverse proxy
       TZ: America/New_York
-      JELLYFIN_URL: http://jellyfin:8096
+      JELLYFIN_URL: http://192.168.1.10:8096
       JELLYFIN_API_KEY: ""
-      RADARR_URL: http://radarr:7878
+      RADARR_URL: http://192.168.1.10:7878
       RADARR_API_KEY: ""
-      SONARR_URL: http://sonarr:8989
+      SONARR_URL: http://192.168.1.10:8989
       SONARR_API_KEY: ""
-      BAZARR_URL: http://bazarr:6767
+      BAZARR_URL: http://192.168.1.10:6767
       BAZARR_API_KEY: ""
       DISCORD_TOKEN: ""
       DISCORD_CLIENT_ID: ""
       DISCORD_GUILD_ID: ""
     volumes:
       - ./data:/data
-    networks: [media]
-
-networks:
-  media:
-    external: true
-    name: media   # the network your Jellyfin/Radarr/Sonarr/Bazarr containers are on
 ```
 
 ### Discord bot setup
