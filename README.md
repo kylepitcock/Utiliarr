@@ -19,7 +19,7 @@ Subtitle reports only work for subtitles Bazarr downloaded (not ones embedded in
 ```bash
 git clone https://github.com/kylepitcock/Utiliarr.git && cd Utiliarr
 cp .env.example .env      # set ADMIN_PASSWORD
-docker compose up -d --build
+docker compose up -d
 ```
 
 Open <http://localhost:5757>, log in with `ADMIN_PASSWORD`, and fill in the **Settings** tab (URLs + API keys, Discord token). Data (SQLite) lives in `./data`.
@@ -35,7 +35,7 @@ Inline environment variables (service URLs, API keys and the Discord token are s
 # URLs, API keys and the Discord token are all entered in the web dashboard (Settings tab).
 services:
   utiliarr:
-    build: .
+    image: ghcr.io/kylepitcock/utiliarr:latest
     container_name: utiliarr
     restart: unless-stopped
     ports:
@@ -54,6 +54,8 @@ services:
 1. Create an application at <https://discord.com/developers/applications>, add a **Bot**, copy the token.
 2. Invite it with the `applications.commands` and `bot` scopes (no special permissions needed).
 3. Put the token and application ID in Settings. Set a Guild ID for instant command registration in one server (global commands can take up to an hour).
+
+The image (`ghcr.io/kylepitcock/utiliarr`, amd64 + arm64) is built and published by GitHub Actions on every push to `main`. To build it yourself instead, run `docker build -t ghcr.io/kylepitcock/utiliarr:latest .`.
 
 ### Running without Docker
 

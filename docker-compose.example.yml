@@ -2,7 +2,7 @@
 # URLs, API keys and the Discord token are all entered in the web dashboard (Settings tab).
 services:
   utiliarr:
-    build: .
+    image: ghcr.io/kylepitcock/utiliarr:latest
     container_name: utiliarr
     restart: unless-stopped
     ports:
