@@ -1,6 +1,5 @@
-# Sample: Utiliarr pointing at your existing Jellyfin/Radarr/Sonarr/Bazarr by host address.
-# Copy to docker-compose.yml and adjust. Service URLs/API keys can also be
-# entered later in the admin UI (Settings tab) instead of here.
+# Sample compose. Only the admin password is set here; Jellyfin/Radarr/Sonarr/Bazarr
+# URLs, API keys and the Discord token are all entered in the web dashboard (Settings tab).
 services:
   utiliarr:
     build: .
@@ -13,16 +12,5 @@ services:
       SESSION_SECRET: generate-with-openssl-rand-hex-32
       COOKIE_SECURE: "false"      # "true" behind an HTTPS reverse proxy
       TZ: America/New_York
-      JELLYFIN_URL: http://192.168.1.10:8096
-      JELLYFIN_API_KEY: ""
-      RADARR_URL: http://192.168.1.10:7878
-      RADARR_API_KEY: ""
-      SONARR_URL: http://192.168.1.10:8989
-      SONARR_API_KEY: ""
-      BAZARR_URL: http://192.168.1.10:6767
-      BAZARR_API_KEY: ""
-      DISCORD_TOKEN: ""
-      DISCORD_CLIENT_ID: ""
-      DISCORD_GUILD_ID: ""
     volumes:
       - ./data:/data
